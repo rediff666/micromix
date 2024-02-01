@@ -42,18 +42,27 @@ def ejecutor_total():
 def get_reloj(tiempo):
 
 	if tiempo<60:
-		if tiempo>10: segundos=tiempo
+		if tiempo>10: segundos=tiempo 
 		else: segundos=f"0{str(tiempo)}"
 		reloj=f"00:00:{segundos}"
 	else:
-		minutos=int(tiempo/60)
+		hora="00" if tiempo<3600 else str(int(tiempo/3600))
+		hora=f"0{hora}" if int(hora)<10 else hora
+
+		minutos_pre=int(tiempo%3600)
+		minutos_pre=int(minutos_pre/60) #if tiempo<3600 else int(tiempo%3600)
+
+		minutos=f"0{minutos_pre}" if minutos_pre<10 else minutos_pre
+
 		segundos_pre=tiempo%60
 		if segundos_pre>10: segundos=segundos_pre
 		else: segundos=f"0{segundos_pre}"
 
+		reloj=f"{hora}:{minutos}:{segundos}"
 	return reloj
 
-print(get_reloj(9))
+
+
 def get_momentos(partes,duracion,audio_in):
 	duracion_segundos=get_duracion_audio(audio_in)
 	print(f"duracion ::: {duracion_segundos}")
@@ -82,51 +91,78 @@ def get_momentos(partes,duracion,audio_in):
 	return momentos
 
 def crea_mix(partes,duracion):
-	libro=load_workbook("base_micromix.xlsx",keep_vba=True)
+	libro=load_workbook("base_micromix.xlsx",keep_vba=False)
 	hoja=libro['Hoja1']
 	n_fila=0
 	array_submixes=[]
-	archivo_log= open("reloj.txt","w",encoding="utf-8")
+	
+	archivo_srt=open("subtitulos.srt","w",encoding="utf-8")
+	archivo_tiempo= open("reloj.txt","w",encoding="utf-8")
+	archivo_log=open("logs.txt","w",encoding="utf-8")
 
-	for fila in hoja.iter_rows(min_row=2,max_col=10,max_row=50):
+	archivo_log.write(f"Archivos que generaron error\n")
+
+	for fila in hoja.iter_rows(min_row=2,max_col=10,max_row=1000):
 		n_fila+=1
 
 		if str(fila[0].value)!="None":
-			print(f"{fila[0].value} --- {fila[1].value}")
+			# print(f"{fila[0].value} --- {fila[1].value}")
 			audio_file=f"{fila[0].value}/{fila[1].value}"
-			momentos=get_momentos(partes,duracion,audio_file)
-			audio_final="sample"
-			array_samples=[]
 
-			for _ in range(0,len(momentos)):
-				array_samples.append(f"{audio_final}{_+1}.mp3")
-				sampleador(audio_file,momentos[_],7,f"{audio_final}{_+1}.mp3")
+			try:
 
-			mixear_audios(array_samples,f"submix{n_fila}.mp3")
-			array_submixes.append(f"submix{n_fila}.mp3")
+				momentos=get_momentos(partes,duracion,audio_file)
+				audio_final="sample"
+				array_samples=[]
 
-			instante=get_reloj((n_fila-1)*partes*duracion)
-			archivo_log.write(f"{instante} -> {fila[0].value} --- {fila[1].value} \n")
+				for _ in range(0,len(momentos)):
+					array_samples.append(f"Submixes/{audio_final}{_+1}.mp3")
+					sampleador(audio_file,momentos[_],duracion,f"Submixes/{audio_final}{_+1}.mp3")
 
-			for _ in array_samples:
-				os.remove(_)
+				mixear_audios(array_samples,f"Submixes/submix{n_fila}.mp3")
+				array_submixes.append(f"Submixes/submix{n_fila}.mp3")
+
+				instante=get_reloj((n_fila-1)*partes*duracion)
+				instante2_subtitulo=get_reloj((n_fila)*(partes*duracion))
+
+				### Escrituras
+				archivo_srt.write(f"{n_fila}\n")
+				archivo_srt.write(f"{instante},000 --> {instante2_subtitulo},000\n")
+				archivo_srt.write(f"{fila[1].value}\n\n")
+
+				archivo_tiempo.write(f"{instante} -> {fila[0].value} --- {fila[1].value} \n")
+
+				for _ in array_samples:
+					os.remove(_)
+			except:
+				archivo_log.write(f"* {n_fila} --> {audio_file}\n")
 			
 		else:
 			break
 
-	# print(array_submixes)
+	
 
-	mixear_audios(array_submixes,f"mixxxx.mp3")
+	mixear_audios(array_submixes,f"Mix/mixxxx.mp3")
 	### Borrado de submixes
 	for _ in array_submixes:
 		os.remove(_)
 	### Cierre de archivo
+	archivo_srt.close()
+	archivo_tiempo.close()
 	archivo_log.close()
 
-def exeee():
-	crea_mix(3,7)
+def main():
+	print("*********** CREADOR DE MIXES ***************")
+	partes=input("Cuantos samples por track?? \n")
+	try: partes=int(partes) 
+	except: partes=2
+	duracion=input("Cuanto dura cada sample??? \n")
+	try: duracion=int(duracion) 
+	except: duracion=7
 
-exeee()
+	crea_mix(partes,duracion)
+
+main()
 
 
 # print(get_momentos(8,10,input_file))
