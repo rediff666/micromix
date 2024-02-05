@@ -3,6 +3,9 @@ import ffmpeg
 import audioread
 from openpyxl import Workbook, load_workbook 
 
+from hojadrive import worksheet
+from voztrack import VozTrack
+
 # Ejemplo de uso
 input_file = '4444.mp3'
 input_file="C:/Users/haro/Desktop/System HO/softjh/MicroMixes_Fusion/Salida/kk.mp3"
@@ -63,7 +66,7 @@ def get_reloj(tiempo):
 
 
 
-def get_momentos(partes,duracion,audio_in):
+def get_momentos(partes,duracion,audio_in,offset=3):
 	duracion_segundos=get_duracion_audio(audio_in)
 	print(f"duracion ::: {duracion_segundos}")
 	intervalo_tiempo=int(int(duracion_segundos)/partes)
@@ -71,7 +74,7 @@ def get_momentos(partes,duracion,audio_in):
 	for _ in range(0,int(partes)):
 		momento=_*intervalo_tiempo
 		
-		if _==0 : momento=momento+3 # Para el primer sample
+		if _==0 : momento=momento+offset # Para el primer sample
 		if momento<60:
 			minutos="00"
 			if momento>=10: segundos=momento 
@@ -102,8 +105,15 @@ def crea_mix(partes,duracion):
 
 	archivo_log.write(f"Archivos que generaron error\n")
 
+	### Varlores para Drive
+	matriz_valores=[]
+
+	### Offset, Para el primer sample, cuando iniciará
+	offset=int(input("Cuantos segundos adicionales offset para primer sample:\n"))
+	
 	for fila in hoja.iter_rows(min_row=2,max_col=10,max_row=1000):
 		n_fila+=1
+		fila_array=[]	
 
 		if str(fila[0].value)!="None":
 			# print(f"{fila[0].value} --- {fila[1].value}")
@@ -111,7 +121,7 @@ def crea_mix(partes,duracion):
 
 			try:
 
-				momentos=get_momentos(partes,duracion,audio_file)
+				momentos=get_momentos(partes,duracion,audio_file,offset)
 				audio_final="sample"
 				array_samples=[]
 
@@ -119,18 +129,32 @@ def crea_mix(partes,duracion):
 					array_samples.append(f"Submixes/{audio_final}{_+1}.mp3")
 					sampleador(audio_file,momentos[_],duracion,f"Submixes/{audio_final}{_+1}.mp3")
 
+					### Creación de voz para sample, Para primer Fragmento de Sample 
+					# if _==0:
+					# 	# vv=VozTrack(fila[1].value)
+					# 	# vv.crea_sample2()
+					# 	pass
+
+
 				mixear_audios(array_samples,f"Submixes/submix{n_fila}.mp3")
 				array_submixes.append(f"Submixes/submix{n_fila}.mp3")
+
+				###	Creación de voz para sample, Para todo el Submix
+				vv=VozTrack(fila[1].value)
+				vv.crea_sample(f"Submixes/submix{n_fila}.mp3")
 
 				instante=get_reloj((n_fila-1)*partes*duracion)
 				instante2_subtitulo=get_reloj((n_fila)*(partes*duracion))
 
-				### Escrituras
+				### Escrituras a Archivos y a Drive
 				archivo_srt.write(f"{n_fila}\n")
 				archivo_srt.write(f"{instante},000 --> {instante2_subtitulo},000\n")
 				archivo_srt.write(f"{fila[1].value}\n\n")
 
 				archivo_tiempo.write(f"{instante} -> {fila[0].value} --- {fila[1].value} \n")
+
+				fila_array=[n_fila,instante,fila[1].value]
+				matriz_valores.append(fila_array)
 
 				for _ in array_samples:
 					os.remove(_)
@@ -141,11 +165,18 @@ def crea_mix(partes,duracion):
 			break
 
 	
-
+	###  Mix Final
 	mixear_audios(array_submixes,f"Mix/mixxxx.mp3")
+
 	### Borrado de submixes
 	for _ in array_submixes:
 		os.remove(_)
+
+	### Valores a Base en Drive
+	drive=worksheet()
+	drive.insertar_filas_en_base(matriz_valores)
+	matriz_valores.clear()
+
 	### Cierre de archivo
 	archivo_srt.close()
 	archivo_tiempo.close()
@@ -165,23 +196,22 @@ def main():
 main()
 
 
-# print(get_momentos(8,10,input_file))
 
-def pruebas_de_tiempos(audio_in):
-	tiempo_decimales=get_duracion_audio(audio_in)
-	print(tiempo_decimales)
-	divisor=round(int(tiempo_decimales)/60,2)
-	if divisor<60:
-		print("No dura mas de una hora")
-	minutos=str(divisor).split(".")[0]
-	segundos=(int(str(divisor).split(".")[-1])/100)*60
-	print(f"minutos {minutos}")
-	print(f"segundos {segundos}")
-
-
-# get_momentos(2)
-# sampleador(input_file,start_time,duracion,output_file)
+# def pruebas_de_tiempos(audio_in):
+# 	tiempo_decimales=get_duracion_audio(audio_in)
+# 	print(tiempo_decimales)
+# 	divisor=round(int(tiempo_decimales)/60,2)
+# 	if divisor<60:
+# 		print("No dura mas de una hora")
+# 	minutos=str(divisor).split(".")[0]
+# 	segundos=(int(str(divisor).split(".")[-1])/100)*60
+# 	print(f"minutos {minutos}")
+# 	print(f"segundos {segundos}")
 
 
+# # get_momentos(2)
+# # sampleador(input_file,start_time,duracion,output_file)
 
-# mixear_audios([input_file1,input_file2],"salida.mp3")
+
+
+# # mixear_audios([input_file1,input_file2],"salida.mp3")

@@ -12,3 +12,8 @@ Archivos_movie/
 Mix/
 logs.txt
 subtitulos.srt
+Submixes/
+__pycache__/
+crea_sheet_beta.py
+credenciales/
+mmm.py
