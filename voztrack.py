@@ -20,7 +20,9 @@ def prueba():
 	# fondo=
 	# nombre_track_audio="nombre_audioX2"
 
-	comando="ffmpeg -i 4x.mp3 -i nombre_audioX2.mp3 -filter_complex amix=inputs=2:duration=longest nombre_final.mp3"
+	comando="ffmpeg -i 4x.mp3 -i nombre_audioX2.mp3 -filter_complex  amix=inputs=2:duration=longest nombre_final.mp3"
+	comando="ffmpeg -i 4x.mp3 -i nombre_audioX2.mp3 -filter_complex  [0:a]adelay=3000[a0];amix=inputs=2:duration=longest nombre_final.mp3"	
+	comando='ffmpeg -i nombre_audioX2.mp3 -i 4x.mp3 -filter_complex "[0:a]adelay=3000[a0];[1:a]volume=1[a1];[a0][a1]amix=inputs=2[aout]" -map "[aout]" output.mp3'
 	os.system(comando)
 
 # prueba()
@@ -31,7 +33,7 @@ class VozTrack:
 		self.nombre_audio=re.sub(r"\[.*?\]","",self.nombre_audio)
 		self.nombre_audio=re.sub(r"_",",",self.nombre_audio)
 
-	def crea_sample(self,submix):
+	def crea_sample(self,submix,offset_ms_pre=0):
 		### Funcion con Voz de Titulo sobre el Sample Completo
 		tts=gTTS(text=self.nombre_audio,lang="es")
 		
@@ -43,8 +45,10 @@ class VozTrack:
 		comando=f"ffmpeg -i Submixes/voz_audio.mp3 -filter:a atempo=1.5 Submixes/voz_audio_fast.mp3"
 		os.system(comando)
 
-
+		offset_ms=offset_ms_pre*1000
 		comando=f"ffmpeg -i {submix} -i Submixes/voz_audio_fast.mp3 -filter_complex amix=inputs=2:duration=longest Submixes/submix_con_nombre.mp3"
+		comando=f'ffmpeg -i Submixes/voz_audio_fast.mp3 -i {submix} -filter_complex "[0:a]adelay={offset_ms}[a0];[1:a]volume=1[a1];[a0][a1]amix=inputs=2[aout]" -map "[aout]" Submixes/submix_con_nombre.mp3'
+
 		os.system(comando)
 
 		os.remove("Submixes/voz_audio_pre.mp3")

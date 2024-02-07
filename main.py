@@ -66,15 +66,28 @@ def get_reloj(tiempo):
 
 
 
-def get_momentos(partes,duracion,audio_in,offset=3):
+def get_momentos(partes,duracion,audio_in,offset=3,tipo_intervalos=1):
 	duracion_segundos=get_duracion_audio(audio_in)
-	print(f"duracion ::: {duracion_segundos}")
 	intervalo_tiempo=int(int(duracion_segundos)/partes)
 	momentos=[]
-	for _ in range(0,int(partes)):
-		momento=_*intervalo_tiempo
-		
-		if _==0 : momento=momento+offset # Para el primer sample
+	array_intervalos=[]
+	if tipo_intervalos==1:
+		for _ in range(0,int(partes)):
+			momento=_*intervalo_tiempo
+			array_intervalos.append(momento)
+	else:
+		for _ in range(0,int(partes)):
+			# if _==0:momento=15
+			# else: momento=+15
+			momento=25 if _==0 else momento+25
+			array_intervalos.append(momento)
+
+	for _ in enumerate(array_intervalos):
+		momento=_[1]
+		if _[0]==0:
+			# if tipo_intervalos==1:
+			momento=momento+offset # Para el primer sample
+
 		if momento<60:
 			minutos="00"
 			if momento>=10: segundos=momento 
@@ -91,6 +104,7 @@ def get_momentos(partes,duracion,audio_in,offset=3):
 		mm=f"00:{minutos}:{segundos}"
 		momentos.append(mm)
 
+	
 	return momentos
 
 def crea_mix(partes,duracion):
@@ -109,8 +123,10 @@ def crea_mix(partes,duracion):
 	matriz_valores=[]
 
 	### Offset, Para el primer sample, cuando iniciará
-	offset=int(input("Cuantos segundos adicionales offset para primer sample:\n"))
-	
+	offset=int(input("Cuantos segundos adicionales offset para extraer primer sample en track total:\n"))
+	off_ms=int(input("En cuantos segundos inicia la voz de Track (Defecto:0): "))
+	tipo_intervalos=int(input("Elija Tipo de intevalo de samples de submixes:\n1 Division de Partes\n2 Tramos Fijos\n"))
+
 	for fila in hoja.iter_rows(min_row=2,max_col=10,max_row=1000):
 		n_fila+=1
 		fila_array=[]	
@@ -121,7 +137,7 @@ def crea_mix(partes,duracion):
 
 			try:
 
-				momentos=get_momentos(partes,duracion,audio_file,offset)
+				momentos=get_momentos(partes,duracion,audio_file,offset,tipo_intervalos)
 				audio_final="sample"
 				array_samples=[]
 
@@ -135,13 +151,12 @@ def crea_mix(partes,duracion):
 					# 	# vv.crea_sample2()
 					# 	pass
 
-
 				mixear_audios(array_samples,f"Submixes/submix{n_fila}.mp3")
 				array_submixes.append(f"Submixes/submix{n_fila}.mp3")
 
 				###	Creación de voz para sample, Para todo el Submix
 				vv=VozTrack(fila[1].value)
-				vv.crea_sample(f"Submixes/submix{n_fila}.mp3")
+				vv.crea_sample(f"Submixes/submix{n_fila}.mp3",off_ms)
 
 				instante=get_reloj((n_fila-1)*partes*duracion)
 				instante2_subtitulo=get_reloj((n_fila)*(partes*duracion))
