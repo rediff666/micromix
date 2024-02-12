@@ -124,8 +124,9 @@ def crea_mix(partes,duracion):
 
 	### Offset, Para el primer sample, cuando iniciará
 	offset=int(input("Cuantos segundos adicionales offset para extraer primer sample en track total:\n"))
-	off_ms=int(input("En cuantos segundos inicia la voz de Track (Defecto:0): "))
+	off_ss=int(input("En cuantos segundos inicia la voz de Track (Defecto:0): "))
 	tipo_intervalos=int(input("Elija Tipo de intevalo de samples de submixes:\n1 Division de Partes\n2 Tramos Fijos\n"))
+	duracion_total=duracion*partes
 
 	for fila in hoja.iter_rows(min_row=2,max_col=10,max_row=1000):
 		n_fila+=1
@@ -156,7 +157,7 @@ def crea_mix(partes,duracion):
 
 				###	Creación de voz para sample, Para todo el Submix
 				vv=VozTrack(fila[1].value)
-				vv.crea_sample(f"Submixes/submix{n_fila}.mp3",off_ms)
+				vv.crea_sample(f"Submixes/submix{n_fila}.mp3",off_ss)
 
 				instante=get_reloj((n_fila-1)*partes*duracion)
 				instante2_subtitulo=get_reloj((n_fila)*(partes*duracion))
@@ -173,8 +174,8 @@ def crea_mix(partes,duracion):
 
 				for _ in array_samples:
 					os.remove(_)
-			except:
-				archivo_log.write(f"* {n_fila} --> {audio_file}\n")
+			except Exception as e:
+				archivo_log.write(f"* {n_fila} --> {audio_file}\n{e}\n\n")
 			
 		else:
 			break
@@ -205,6 +206,7 @@ def main():
 	duracion=input("Cuanto dura cada sample??? \n")
 	try: duracion=int(duracion) 
 	except: duracion=7
+	
 
 	crea_mix(partes,duracion)
 
